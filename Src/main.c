@@ -26,6 +26,9 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdint.h"
+#include "ADC_Calculation.h"
+#include "BoardComm.h"
+#include "Sputter.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -72,10 +75,10 @@ const osThreadAttr_t ADCcalculation_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityRealtime5,
 };
-/* Definitions for BoardCommunicat */
-osThreadId_t BoardCommunicatHandle;
-const osThreadAttr_t BoardCommunicat_attributes = {
-  .name = "BoardCommunicat",
+/* Definitions for BoardCommunican */
+osThreadId_t BoardCommunicanHandle;
+const osThreadAttr_t BoardCommunican_attributes = {
+  .name = "BoardCommunican",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityRealtime6,
 };
@@ -88,28 +91,8 @@ const osThreadAttr_t Sputter_attributes = {
 };
 /* USER CODE BEGIN PV */
 unsigned char state='S';
-uint8_t sent_data[16]={0x06,0x71,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30},buffer_usart[13],rec_D[1],cn1;
-uint8_t Enable_HC, ii, jj, kk, Avg_Cnt1, Avg_Cnt2, Avg_Cnt3;
-uint32_t ADC_Calibration_Factor_1, ADC_Calibration_Factor_2, ADC_Buffer[5], ADC_Buffer_2[5];
-uint16_t Current_Limit, Voltage_Limit, Power_Limit;
-char Read_Current[5], Read_Voltage[5];
-uint32_t ADC0_Buffer_Sum,Averaged_ADC0_Buffer,Moving_Average_Buffer_Current,Setpoint_Limit_Current,ADC_Calibration_Factor;
-uint32_t ADC1_Buffer_Sum, Averaged_ADC1_Buffer, Moving_Average_Buffer_Voltage, Setpoint_Limit_Voltage;
-uint32_t Power_Buffer, Averaged_Power, Moving_Average_Power, Output_Power,Pout=0;
-float Iout_NotCalibrated,Iout;
-float Current_Calibration_Coefficient = 1;//0.1185; //Current_HMI-Preview = 0.1185*ADC + 0.9473 
-float Current_Calibration_Offset = 0;//0.9473;
-float Vout_NotCalibrated,Vout;
-float Voltage_Calibration_Coefficient = 1;//0.0056; // Voltage_HMI-Preview = 0.0056*ADC + 0.0481
-float Voltage_Calibration_Offset = 0;//0.0481;
-
-uint32_t Voltage_SP=0,Voltage_Setpoint;
-uint32_t Current_SP=0,Current_Setpoint;
-unsigned char DC_OK=0, PFC_OK=0, Inrush_OK=0;
-unsigned int DC_OK_Cnt=0, PFC_Cnt=0, Inrush_Cnt=0;
-
-uint16_t Heatsink_Overheat, Trans_Overheat, Fan_Enable;
-uint16_t tacho1,tacho2,Fan_Timer,Fan_Timer_Enable,tacho1_Backup,tacho2_Backup,tacho1_Disable,tacho2_Disable,Usart_Counter,Com_Failure;
+uint32_t ADC_Calibration_Factor_1, ADC_Calibration_Factor_2, ADC_Buffer_2[5];
+uint16_t tacho1,tacho2,tacho1_Backup,tacho2_Backup,tacho1_Disable,tacho2_Disable,Usart_Counter,Com_Failure;
 
 
 /* USER CODE END PV */
@@ -126,16 +109,17 @@ static void MX_USART2_UART_Init(void);
 static void MX_CAN_Init(void);
 static void MX_TIM1_Init(void);
 void StartDefaultTask(void *argument);
-void StartTask02(void *argument);
-void StartTask03(void *argument);
-void StartTask04(void *argument);
+void ADCcalculationTask(void *argument);
+void BoardCommunicanTask(void *argument);
+void SputterTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-void i2s(unsigned long int ,char str[5]);                // Integer to string data conversion
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+extern uint32_t ADC_Buffer[5];
 
 /* USER CODE END 0 */
 
@@ -221,13 +205,13 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of ADCcalculation */
-  ADCcalculationHandle = osThreadNew(StartTask02, NULL, &ADCcalculation_attributes);
+  ADCcalculationHandle = osThreadNew(ADCcalculationTask, NULL, &ADCcalculation_attributes);
 
-  /* creation of BoardCommunicat */
-  BoardCommunicatHandle = osThreadNew(StartTask03, NULL, &BoardCommunicat_attributes);
+  /* creation of BoardCommunican */
+  BoardCommunicanHandle = osThreadNew(BoardCommunicanTask, NULL, &BoardCommunican_attributes);
 
   /* creation of Sputter */
-  SputterHandle = osThreadNew(StartTask04, NULL, &Sputter_attributes);
+  SputterHandle = osThreadNew(SputterTask, NULL, &Sputter_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -245,229 +229,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		//--------------------- Data Gathering ---------------------//
-		Current_Limit	= (buffer_usart[0]-48)*1000 + (buffer_usart[1]-48)*100 +(buffer_usart[2]-48)*10 +(buffer_usart[3]-48)*1	;
-		Voltage_Limit	= (buffer_usart[4]-48)*1000 + (buffer_usart[5]-48)*100 +(buffer_usart[6]-48)*10 +(buffer_usart[7]-48)*1	;
-		Power_Limit		= (buffer_usart[8]-48)*1000 + (buffer_usart[9]-48)*100 +(buffer_usart[10]-48)*10 +(buffer_usart[11]-48)*1	;
-		Enable_HC			= (buffer_usart[12]-48)	;
-		//----------------------------------------------------------//
-		//Voltage_SP=(uint32_t)(Voltage_Limit*185.150-10.118); //DAC_Voltage = HMI_VSP*185.150-10.118
-		//Current_SP=(uint32_t)(Current_Limit*15.364+675.450); //DAC_Current = HMI_ISP*15.364+675.450
-		Voltage_SP=(uint32_t) Voltage_Limit;
-		Current_SP=(uint32_t) Current_Limit;
-		if (Voltage_SP<=0)
-			Voltage_SP=0;
-		if (Voltage_SP>=2750)
-			Voltage_SP=2750;
-		
-		if (Current_SP<=0)
-			Current_SP=0;
-		if (Current_SP>=4095)
-			Current_SP=4095;
-		
-		if (!HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8))
-		{
-			DC_OK_Cnt++;
-			if (DC_OK_Cnt>=40000)
-			{
-				DC_OK=1;
-				DC_OK_Cnt=40000;
-				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // DC_OK Status LED On
-			}
-		}
-		else
-		{
-			DC_OK_Cnt=0;
-			DC_OK=0;
-			Voltage_SP=0;
-			Current_SP=0;
-			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // DC_OK Status LED Off
-		};
-		
-		if ((Com_Failure==0) & (Enable_HC==1) & (Trans_Overheat==0) & (Heatsink_Overheat==0) & (tacho1_Disable==0))
-		{
-			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);							// Fan Enable
-			//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_7,GPIO_PIN_SET);							// Relay AC Enable
-			if (PFC_Cnt<1000)
-			{
-				PFC_Cnt++;
-			}
-			else
-			{
-				PFC_OK=1;
-				PFC_Cnt=1000;
-				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_SET);					// PFC Enable
-			};
-			
-			Fan_Timer_Enable=0;
-			Fan_Timer=0;
-			if ((tacho2_Disable==0) & (DC_OK==1) & (PFC_OK==1) & (Current_SP>0 || Voltage_SP>0))
-			{
-				if (Inrush_Cnt<1000)//500
-				{
-					Inrush_Cnt++;
-				}
-				else
-				{
-					Inrush_Cnt=1000;//500
-					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_SET);					// Inrush Relay Enable
-					Inrush_OK=1;
-				};
-				if (Inrush_OK==1)
-				{
-					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);						// Enable HC
-					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_10,GPIO_PIN_SET);					// Enable Status LED On
-					// ----------------------------- Current ----------------------------- //
-					if (Current_Setpoint < Current_SP && Current_Setpoint < 4095)
-						Current_Setpoint = Current_Setpoint + 1;
-					if (Current_Setpoint >= Current_SP && Current_Setpoint > 0)
-						Current_Setpoint = Current_Setpoint - 1;
-					//---------------------------------------------------------------------//
-					// ----------------------------- Voltage ----------------------------- //
-					if (Voltage_Setpoint < Voltage_SP  && Voltage_Setpoint < 4095)
-						Voltage_Setpoint = Voltage_Setpoint + 1;
-					if (Voltage_Setpoint >= Voltage_SP && Voltage_Setpoint > 0)
-						Voltage_Setpoint = Voltage_Setpoint - 1;
-					//---------------------------------------------------------------------//
-				};
-			}
-			else
-			{
-				//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_7,GPIO_PIN_RESET);						// Relay AC Disable
-				if (DC_OK_Cnt>=40000)
-					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_RESET);					// PFC Disable
-				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_RESET);					// Inrush Relay Disable
-				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET);						// Disable HC
-				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_10,GPIO_PIN_RESET);					// Enable Status LED Off
 
-				Current_Setpoint = 0;
-				Voltage_Setpoint = 0;
-			};
-		}
-		else
-		{
-			//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_7,GPIO_PIN_RESET);							// Relay AC Disable
-			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_RESET);						// PFC Disable
-			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_RESET);						// Inrush Relay Disable
-			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET);							// Disable HC
-			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_10,GPIO_PIN_RESET);						// Enable Status LED Off
-			Fan_Timer_Enable=1;
-			Inrush_Cnt=0;
-			Inrush_OK=0;
-			PFC_Cnt=0;
-			PFC_OK=0;
-			if (Fan_Timer>60)
-			{
-				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);						 //////// timer
-				Fan_Timer_Enable=0;
-				Fan_Timer=0;
-			};
-			Current_Setpoint = 0;
-			Voltage_Setpoint = 0;
-		};
-		
-		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, (uint32_t)(Voltage_Setpoint));//(Arc_Level/(Current_Calibration_Coefficient*Nextion_Current_IL300_Coefficient)));
-		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, (uint32_t)(Current_Setpoint));
-		
-		//--------------------- Voltage ADC ---------------------//
-		ADC0_Buffer_Sum = 0;
-		for (ii=0;ii<50;ii++)
-			ADC0_Buffer_Sum = ADC0_Buffer_Sum + ADC_Buffer[0];
-		Averaged_ADC0_Buffer = ADC0_Buffer_Sum/50;
-		// Moving average filter //
-		Moving_Average_Buffer_Voltage = Moving_Average_Buffer_Voltage + Averaged_ADC0_Buffer;
-		if (Avg_Cnt1==10)
-		{
-			Vout_NotCalibrated = (uint32_t) ( ((Vout_NotCalibrated*9)+(Moving_Average_Buffer_Voltage/10))/10 );
-			Vout = (Vout_NotCalibrated*Voltage_Calibration_Coefficient); //Voltage_HMI-Preview = 0.0056*ADC + 0.0481
-			Moving_Average_Buffer_Voltage = 0;
-			// Offset Calibration //
-			if (Vout-Voltage_Calibration_Offset>0)
-				Vout = Vout + Voltage_Calibration_Offset;   
-			else
-				Vout = 0;
-			
-			////////////////////////
-			Avg_Cnt1 = 0;
-		};
-		Avg_Cnt1++;
-		i2s(Vout,Read_Voltage);
-		sent_data[6]=Read_Voltage[0];
-		sent_data[7]=Read_Voltage[1];
-		sent_data[8]=Read_Voltage[2];
-		sent_data[9]=Read_Voltage[3];
-		//-------------------------------------------------------//
-		
-		//--------------------- Current ADC ---------------------//
-		ADC1_Buffer_Sum = 0;
-		for (jj=0;jj<50;jj++)
-			ADC1_Buffer_Sum = ADC1_Buffer_Sum + ADC_Buffer[1];
-		Averaged_ADC1_Buffer = ADC1_Buffer_Sum/50;
-		// Moving average filter //
-		Moving_Average_Buffer_Current = Moving_Average_Buffer_Current + Averaged_ADC1_Buffer;
-		if (Avg_Cnt2==10)
-		{
-			Iout_NotCalibrated = (uint32_t) ( ((Iout_NotCalibrated*9)+(Moving_Average_Buffer_Current/10))/10 );
-			Iout = (uint32_t)(Iout_NotCalibrated*Current_Calibration_Coefficient); //Current_HMI-Preview = 0.1185*ADC + 0.9473 
-			Moving_Average_Buffer_Current = 0;
-			// Offset Calibration //
-			if (Iout-Current_Calibration_Offset>0)
-				Iout = Iout + Current_Calibration_Offset;
-			else
-				Iout = 0;
-			////////////////////////
-			Avg_Cnt2 = 0;
-		};
-		Avg_Cnt2++;
-		i2s(Iout,Read_Current);
-		sent_data[2]=Read_Current[0];
-		sent_data[3]=Read_Current[1];
-		sent_data[4]=Read_Current[2];
-		sent_data[5]=Read_Current[3];
-		//-------------------------------------------------------//
-		sent_data[10]=DC_OK+'0';
-		sent_data[11]=Trans_Overheat+'0';
-		sent_data[12]=Heatsink_Overheat+'0';
-		sent_data[13]=tacho1_Disable+'0';
-		sent_data[14]=tacho2_Disable+'0';
-		
-		//--------------------- Power ADC ---------------------//
-		Pout=Vout*Iout/1000;
-		//------ Power Filter ------//
-		Power_Buffer = 0;
-		for (kk=0;kk<50;kk++)
-			Power_Buffer = Power_Buffer + Pout;
-		Averaged_Power = Power_Buffer/50;
-		// Moving average filter //
-		Moving_Average_Power = Moving_Average_Power + Averaged_Power;
-		if (Avg_Cnt3==10)
-		{
-			Output_Power = (uint32_t) ( ((Output_Power*9)+(Moving_Average_Power/10))/10 );
-			Moving_Average_Power = 0;
-			Avg_Cnt3 = 0;
-		};
-		Avg_Cnt3++;
-		//--------------------------//
-    /* USER CODE END WHILE */
+  	/* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, (uint32_t)(0));//(Arc_Level/(Current_Calibration_Coefficient*Nextion_Current_IL300_Coefficient)));
-		//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, (uint32_t)(0));
-		
-		if (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9))	
-			Heatsink_Overheat=1;											// overheat
-		else
-			Heatsink_Overheat=0;											// normal
-		
-		if (HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_13))	
-			Trans_Overheat=1;													// overheat
-		else
-			Trans_Overheat=0;													// normal
-	}
 		
   /* USER CODE END 3 */
+  }
 }
-
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -949,13 +718,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void i2s(unsigned long int num,char str[5]){
-    str[0] = (num/1000)%10 + '0';
-    str[1] = (num/100)%10 + '0';
-    str[2] = (num/10)%10 + '0';
-    str[3] = (num/1)%10 + '0';
-    str[4] = '0';
-}
+
 
 /* USER CODE END 4 */
 
@@ -977,58 +740,58 @@ void StartDefaultTask(void *argument)
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_StartTask02 */
+/* USER CODE BEGIN Header_ADCcalculationTask */
 /**
 * @brief Function implementing the ADCcalculation thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument)
+/* USER CODE END Header_ADCcalculationTask */
+void ADCcalculationTask(void *argument)
 {
-  /* USER CODE BEGIN StartTask02 */
+  /* USER CODE BEGIN ADCcalculationTask */
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	ADC_CaculationFunc();
   }
-  /* USER CODE END StartTask02 */
+  /* USER CODE END ADCcalculationTask */
 }
 
-/* USER CODE BEGIN Header_StartTask03 */
+/* USER CODE BEGIN Header_BoardCommunicanTask */
 /**
-* @brief Function implementing the BoardCommunicat thread.
+* @brief Function implementing the BoardCommunican thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask03 */
-void StartTask03(void *argument)
+/* USER CODE END Header_BoardCommunicanTask */
+void BoardCommunicanTask(void *argument)
 {
-  /* USER CODE BEGIN StartTask03 */
+  /* USER CODE BEGIN BoardCommunicanTask */
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	BoardCommFunc();
   }
-  /* USER CODE END StartTask03 */
+  /* USER CODE END BoardCommunicanTask */
 }
 
-/* USER CODE BEGIN Header_StartTask04 */
+/* USER CODE BEGIN Header_SputterTask */
 /**
 * @brief Function implementing the Sputter thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask04 */
-void StartTask04(void *argument)
+/* USER CODE END Header_SputterTask */
+void SputterTask(void *argument)
 {
-  /* USER CODE BEGIN StartTask04 */
+  /* USER CODE BEGIN SputterTask */
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	SputterFunc();
   }
-  /* USER CODE END StartTask04 */
+  /* USER CODE END SputterTask */
 }
 
 /**

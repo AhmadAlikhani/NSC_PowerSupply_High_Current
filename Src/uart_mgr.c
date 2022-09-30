@@ -19,7 +19,7 @@ extern UART_HandleTypeDef huart2;
 
 void uart_receiver(UART_HandleTypeDef uart_index, void* outgoing_data)
 {
-	if(uart_index.Instance == huart2.Instance)
+/*	if(uart_index.Instance == huart2.Instance)
 	{
 		//--------------------- Data Gathering ---------------------//
 		//store incomming data if they are greater than 0 and lower than max values
@@ -29,5 +29,5 @@ void uart_receiver(UART_HandleTypeDef uart_index, void* outgoing_data)
 		temporary_data->HMI_Voltage_Setpoint=	(((buffer_usart2[5]-48)*1000 + (buffer_usart2[6]-48)*100 +(buffer_usart2[7]-48)*10 +(buffer_usart2[8]-48)*1) < MAX_HMI_VOLTAGE_SETPOINT_VALUE && ((buffer_usart2[5]-48)*1000 + (buffer_usart2[6]-48)*100 +(buffer_usart2[7]-48)*10 +(buffer_usart2[8]-48)*1) >= 0) ? (((buffer_usart2[5]-48)*1000 + (buffer_usart2[6]-48)*100 +(buffer_usart2[7]-48)*10 +(buffer_usart2[8]-48)*1)) : (temporary_data->HMI_Voltage_Setpoint);
 		temporary_data->Arc_Level			=	(((buffer_usart2[9]-48)*1000 + (buffer_usart2[10]-48)*100 +(buffer_usart2[11]-48)*10 +(buffer_usart2[12]-48)*1) < MAX_ARC_LEVEL_VALUE && ((buffer_usart2[9]-48)*1000 + (buffer_usart2[10]-48)*100 +(buffer_usart2[11]-48)*10 +(buffer_usart2[12]-48)*1) >= 0) ? (((buffer_usart2[9]-48)*1000 + (buffer_usart2[10]-48)*100 +(buffer_usart2[11]-48)*10 +(buffer_usart2[12]-48)*1)) : (temporary_data->Arc_Level);
 		temporary_data->Quanch_Time			=	(((buffer_usart2[13]-48)*1000 + (buffer_usart2[14]-48)*100 +(buffer_usart2[15]-48)*10 +(buffer_usart2[16]-48)*1	) < MAX_QUANCH_TIME_VALUE && ((buffer_usart2[13]-48)*1000 + (buffer_usart2[14]-48)*100 +(buffer_usart2[15]-48)*10 +(buffer_usart2[16]-48)*1	) >= 0) ? ((buffer_usart2[13]-48)*1000 + (buffer_usart2[14]-48)*100 +(buffer_usart2[15]-48)*10 +(buffer_usart2[16]-48)*1) : (temporary_data->Quanch_Time);
-	}
+	}*/
 }

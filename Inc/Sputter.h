@@ -8,11 +8,12 @@ void SputterFunc(void);
 typedef struct FailureStatus
 {
 	uint16_t Com_Failure;
-	uint8_t PFC_OK;
-	uint8_t DC_OK;
-	uint16_t FB_OTP;
-	uint8_t Hiccup;
 	uint16_t tacho2_Disable;
+	uint16_t tacho1_Disable;
+	uint16_t Heatsink_Overheat;
+	uint16_t Trans_Overheat;
+	uint8_t DC_OK;
+	unsigned char PFC_OK;
 	unsigned char Inrush_OK;
 }FailureStatus_t;
 

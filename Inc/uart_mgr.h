@@ -6,11 +6,9 @@
 
 typedef struct hmi_configuration_data
 {
-	uint8_t Enable_Sputter;
-	uint32_t HMI_Current_Setpoint;
-	uint32_t HMI_Voltage_Setpoint;
-	uint32_t Arc_Level;
-	uint32_t Quanch_Time;
+	uint8_t Enable_HC;
+	uint32_t Current_Setpoint;
+	uint32_t Voltage_Limit;
 }hmi_configuration_data_t;
 
 #endif /* UART_MGR_COMM */
