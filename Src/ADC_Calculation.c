@@ -23,8 +23,8 @@ float Voltage_Calibration_Coefficient = 1;//0.0056; // Voltage_HMI-Preview = 0.0
 float Current_Calibration_Coefficient = 1;//0.1185; //Current_HMI-Preview = 0.1185*ADC + 0.9473
 float Current_Calibration_Offset = 0;//0.9473;
 
-extern FailureStatus_t flags_status;
-
+extern FailureStatus_t failure_status;
+extern FlagsStatus_t flags_status;
 
 void ADC_CaculationFunc(void)
 {
@@ -70,7 +70,7 @@ void ADC_CaculationFunc(void)
 	  Moving_Average_Buffer_Current = Moving_Average_Buffer_Current + Averaged_ADC1_Buffer;
 	  if (Avg_Cnt2==10)
 	  {
-	  	Iout_NotCalibrated = (uint32_t) ( ((Iout_NotCalibrated*9)+(Moving_Average_Buffer_Current/10))/10 );
+	  	Iout_NotCalibrated = (uint32_t) (((Iout_NotCalibrated*9)+(Moving_Average_Buffer_Current/10))/10 );
 	  	Iout = (uint32_t)(Iout_NotCalibrated*Current_Calibration_Coefficient); //Current_HMI-Preview = 0.1185*ADC + 0.9473
 	  	Moving_Average_Buffer_Current = 0;
 	  	// Offset Calibration //
@@ -88,11 +88,11 @@ void ADC_CaculationFunc(void)
 	  sent_data[4]=Read_Current[2];
 	  sent_data[5]=Read_Current[3];
 	  //-------------------------------------------------------//
-	  sent_data[10]=flags_status.DC_OK+'0';
-	  sent_data[11]=flags_status.Trans_Overheat+'0';
-	  sent_data[12]=flags_status.Heatsink_Overheat+'0';
-	  sent_data[13]=flags_status.tacho1_Disable+'0';
-	  sent_data[14]=flags_status.tacho2_Disable+'0';
+	  sent_data[10]=flags_status.flag_DC_OK+'0';
+	  sent_data[11]=failure_status.Trans_Overheat+'0';
+	  sent_data[12]=failure_status.Heatsink_Overheat+'0';
+	  sent_data[13]=failure_status.tacho1_Disable+'0';
+	  sent_data[14]=failure_status.tacho2_Disable+'0';
 
 	  //--------------------- Power ADC ---------------------//
 	  Pout=Vout*Iout/1000;

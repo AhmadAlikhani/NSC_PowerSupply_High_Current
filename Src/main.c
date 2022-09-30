@@ -92,9 +92,7 @@ const osThreadAttr_t Sputter_attributes = {
 /* USER CODE BEGIN PV */
 unsigned char state='S';
 uint32_t ADC_Calibration_Factor_1, ADC_Calibration_Factor_2, ADC_Buffer_2[5];
-uint16_t tacho1,tacho2,tacho1_Backup,tacho2_Backup,tacho1_Disable,tacho2_Disable,Usart_Counter,Com_Failure;
-
-
+uint16_t tacho1,tacho2,tacho1_Backup,tacho2_Backup,Usart_Counter;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

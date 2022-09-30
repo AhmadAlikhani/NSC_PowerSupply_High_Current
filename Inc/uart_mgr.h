@@ -11,4 +11,15 @@ typedef struct hmi_configuration_data
 	uint32_t Voltage_Limit;
 }hmi_configuration_data_t;
 
+typedef struct PowerSupplySetPoints
+{
+	uint32_t VoltageLimit;
+	uint32_t Voltage_Setpoint;
+	uint32_t Current_Target_SetPoint;
+	uint32_t Current_Dac_Value;
+	uint32_t Voltage_Step;
+	uint32_t Current_Step;
+}PowerSupplySetPoints_t;
+
+
 #endif /* UART_MGR_COMM */

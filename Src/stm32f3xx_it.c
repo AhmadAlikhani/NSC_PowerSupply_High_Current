@@ -57,11 +57,8 @@
 uint8_t index_usart, rcv_flg;
 extern unsigned char state;
 extern uint8_t sent_data[16], buffer_usart[13], rec_D[1], cn1;
-extern uint16_t tacho1,tacho2,Fan_Timer,Fan_Timer_Enable,tacho1_Backup,tacho2_Backup,tacho1_Disable,tacho2_Disable,Usart_Counter,Com_Failure;
+extern uint16_t tacho1,tacho2,Fan_Timer,Fan_Timer_Enable,tacho1_Backup,tacho2_Backup,Usart_Counter;
 extern FailureStatus_t flags_status;
-
-
-
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -158,23 +155,23 @@ void TIM1_UP_TIM16_IRQHandler(void)
 /*	if (tacho1_Backup<50)
 		tacho1_Disable=1;
 	else*/
-		tacho1_Disable=0;
+	flags_status.tacho1_Disable=0;
 	
 /*	if (tacho2_Backup<50)
 		tacho2_Disable=1;
 	else*/
-		tacho2_Disable=0;
+	flags_status.tacho2_Disable=0;
 	
 	tacho1_Backup=tacho1*1;
 	tacho2_Backup=tacho2*1;
 	tacho1=0;
 	tacho2=0;
 	
-	if (tacho1_Disable==1)
+	if (flags_status.tacho1_Disable==1)
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_2,GPIO_PIN_RESET);					// Fan Status LED Off
-	else if ( (tacho1_Disable==0) & (tacho2_Disable==1) )
+	else if ( (flags_status.tacho1_Disable==0) & (flags_status.tacho2_Disable==1) )
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_2,GPIO_PIN_SET);						// Fan Status LED On
-	else if ( (tacho1_Disable==0) & (tacho2_Disable==0) )
+	else if ( (flags_status.tacho1_Disable==0) & (flags_status.tacho2_Disable==0) )
 		HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_2);												// Fan Status LED Toggle
 	
 	/*
