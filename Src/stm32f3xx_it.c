@@ -61,8 +61,11 @@ extern uint16_t tacho1,tacho2,Fan_Timer,Fan_Timer_Enable,tacho1_Backup,tacho2_Ba
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_adc2;
+extern DAC_HandleTypeDef hdac1;
 extern TIM_HandleTypeDef htim1;
 extern UART_HandleTypeDef huart2;
+extern TIM_HandleTypeDef htim6;
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -70,19 +73,6 @@ extern UART_HandleTypeDef huart2;
 /******************************************************************************/
 /*           Cortex-M4 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
-/**
-  * @brief This function handles System tick timer.
-  */
-void SysTick_Handler(void)
-{
-  /* USER CODE BEGIN SysTick_IRQn 0 */
-
-  /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
-  /* USER CODE BEGIN SysTick_IRQn 1 */
-
-  /* USER CODE END SysTick_IRQn 1 */
-}
 
 /******************************************************************************/
 /* STM32F3xx Peripheral Interrupt Handlers                                    */
@@ -159,14 +149,14 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	if (Fan_Timer_Enable==1)
 		Fan_Timer=Fan_Timer+1;
 	
-	if (tacho1_Backup<50)
+/*	if (tacho1_Backup<50)
 		tacho1_Disable=1;
-	else
+	else*/
 		tacho1_Disable=0;
 	
-	if (tacho2_Backup<50)
+/*	if (tacho2_Backup<50)
 		tacho2_Disable=1;
-	else
+	else*/
 		tacho2_Disable=0;
 	
 	tacho1_Backup=tacho1*1;
@@ -258,6 +248,21 @@ void EXTI15_10_IRQHandler(void)
 	tacho1=tacho1+1;
 	
   /* USER CODE END EXTI15_10_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM6 global and DAC1 underrun error interrupts.
+  */
+void TIM6_DAC1_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_DAC1_IRQn 0 */
+
+  /* USER CODE END TIM6_DAC1_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  HAL_DAC_IRQHandler(&hdac1);
+  /* USER CODE BEGIN TIM6_DAC1_IRQn 1 */
+
+  /* USER CODE END TIM6_DAC1_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

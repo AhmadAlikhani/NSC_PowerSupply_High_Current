@@ -11,6 +11,10 @@ RM := rm -rf
 -include sources.mk
 -include Startup/subdir.mk
 -include Src/subdir.mk
+-include Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/subdir.mk
+-include Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/subdir.mk
+-include Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/subdir.mk
+-include Middlewares/Third_Party/FreeRTOS/Source/subdir.mk
 -include Drivers/STM32F3xx_HAL_Driver/Src/subdir.mk
 -include objects.mk
 
@@ -60,8 +64,8 @@ all: main-build
 main-build: HCPS_V1.2.elf secondary-outputs
 
 # Tool invocations
-HCPS_V1.2.elf HCPS_V1.2.map: $(OBJS) $(USER_OBJS) D:\ahmadalikhani_workspace\NSC_PowerSupply_High_Current\STM32F334R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "HCPS_V1.2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\ahmadalikhani_workspace\NSC_PowerSupply_High_Current\STM32F334R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HCPS_V1.2.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+HCPS_V1.2.elf HCPS_V1.2.map: $(OBJS) $(USER_OBJS) E:\M.Mozaffari\21_Ongoing_Tasks\NSC_PowerSupply_1200V\NSC_PowerSupply_High_Current\STM32F334R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "HCPS_V1.2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\M.Mozaffari\21_Ongoing_Tasks\NSC_PowerSupply_1200V\NSC_PowerSupply_High_Current\STM32F334R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HCPS_V1.2.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
