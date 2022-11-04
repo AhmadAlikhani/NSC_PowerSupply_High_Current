@@ -25,4 +25,11 @@ typedef struct FlagsStatus
 	unsigned char Inrush_OK;
 }FlagsStatus_t;
 
+typedef struct FailureCounter
+{
+	unsigned int DC_OK_Cnt;
+	unsigned int PFC_Cnt;
+	unsigned int Inrush_Cnt;
+}FailureCounter_t;
+
 #endif /*SPUTTER_HANDLE_DEFINE*/

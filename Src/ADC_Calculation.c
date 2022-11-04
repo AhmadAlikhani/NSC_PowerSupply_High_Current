@@ -36,6 +36,7 @@ void ADC_CaculationFunc(void)
 	  ADC0_Buffer_Sum = 0;
 	  for (uint32_t i=0; i < 50 ;i++)
 	  	ADC0_Buffer_Sum = ADC0_Buffer_Sum + ADC_Buffer[0];
+
 	  Averaged_ADC0_Buffer = ADC0_Buffer_Sum/50;
 	  // Moving average filter //
 	  Moving_Average_Buffer_Voltage = Moving_Average_Buffer_Voltage + Averaged_ADC0_Buffer;
@@ -65,6 +66,7 @@ void ADC_CaculationFunc(void)
 	  ADC1_Buffer_Sum = 0;
 	  for (uint32_t i=0; i < 50 ; i++)
 	  	ADC1_Buffer_Sum = ADC1_Buffer_Sum + ADC_Buffer[1];
+
 	  Averaged_ADC1_Buffer = ADC1_Buffer_Sum/50;
 	  // Moving average filter //
 	  Moving_Average_Buffer_Current = Moving_Average_Buffer_Current + Averaged_ADC1_Buffer;

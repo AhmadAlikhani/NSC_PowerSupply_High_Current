@@ -11,7 +11,7 @@
 
 FailureStatus_t failure_status;
 FlagsStatus_t flags_status;
-unsigned int DC_OK_Cnt=0, PFC_Cnt=0, Inrush_Cnt=0;
+FailureCounter_t failure_counters;
 uint16_t Fan_Timer_Enable;
 uint16_t Fan_Timer;
 
@@ -26,6 +26,10 @@ extern hmi_configuration_data_t hmi_config_data;
 void SputterFunc(void)
 {
   /* USER CODE BEGIN Sputter */
+
+	failure_counters.DC_OK_Cnt = 0;
+	failure_counters.PFC_Cnt = 0;
+	failure_counters.Inrush_Cnt = 0;
 
   /* Infinite loop */
   for(;;)
@@ -42,17 +46,17 @@ void SputterFunc(void)
 
 	  if (!HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8))
 	  {
-	  	DC_OK_Cnt++;
-	  	if (DC_OK_Cnt>=40000)
+		  failure_counters.DC_OK_Cnt++;
+	  	if (failure_counters.DC_OK_Cnt>=40000)
 	  	{
 	  		flags_status.flag_DC_OK=1;
-	  		DC_OK_Cnt=40000;
+	  		failure_counters.DC_OK_Cnt=40000;
 	  		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // DC_OK Status LED On
 	  	}
 	  }
 	  else
 	  {
-	  	DC_OK_Cnt=0;
+		failure_counters.DC_OK_Cnt=0;
 	  	flags_status.flag_DC_OK=0;
 	  	set_points_data.VoltageLimit=0;
 	  	set_points_data.Current_Target_SetPoint=0;
@@ -63,14 +67,14 @@ void SputterFunc(void)
 	  {
 	  	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);							// Fan Enable
 	  	//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_7,GPIO_PIN_SET);							// Relay AC Enable
-	  	if (PFC_Cnt<1000)
+	  	if (failure_counters.PFC_Cnt<1000)
 	  	{
-	  		PFC_Cnt++;
+	  		failure_counters.PFC_Cnt++;
 	  	}
 	  	else
 	  	{
 	  		flags_status.flag_PFC_OK=1;
-	  		PFC_Cnt=1000;
+	  		failure_counters.PFC_Cnt=1000;
 	  		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_SET);					// PFC Enable
 	  	};
 
@@ -78,13 +82,13 @@ void SputterFunc(void)
 	  	Fan_Timer=0;
 	  	if ((failure_status.tacho2_Disable==0) & (flags_status.flag_DC_OK==1) & (flags_status.flag_PFC_OK==1) & (set_points_data.Current_Target_SetPoint>0 || set_points_data.VoltageLimit>0))
 	  	{
-	  		if (Inrush_Cnt<1000)//500
+	  		if (failure_counters.Inrush_Cnt<1000)//500
 	  		{
-	  			Inrush_Cnt++;
+	  			failure_counters.Inrush_Cnt++;
 	  		}
 	  		else
 	  		{
-	  			Inrush_Cnt=1000;//500
+	  			failure_counters.Inrush_Cnt=1000;//500
 	  			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_SET);					// Inrush Relay Enable
 	  			flags_status.Inrush_OK=1;
 	  		};
@@ -109,7 +113,7 @@ void SputterFunc(void)
 	  	else
 	  	{
 	  		//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_7,GPIO_PIN_RESET);						// Relay AC Disable
-	  		if (DC_OK_Cnt>=40000)
+	  		if (failure_counters.DC_OK_Cnt>=40000)
 	  			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_RESET);					// PFC Disable
 	  		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_RESET);					// Inrush Relay Disable
 	  		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET);						// Disable HC
@@ -127,9 +131,9 @@ void SputterFunc(void)
 	  	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET);							// Disable HC
 	  	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_10,GPIO_PIN_RESET);						// Enable Status LED Off
 	  	Fan_Timer_Enable=1;
-	  	Inrush_Cnt=0;
+	  	failure_counters.Inrush_Cnt=0;
 	  	flags_status.Inrush_OK=0;
-	  	PFC_Cnt=0;
+	  	failure_counters.PFC_Cnt=0;
 	  	flags_status.flag_PFC_OK=0;
 	  	if (Fan_Timer>60)
 	  	{
