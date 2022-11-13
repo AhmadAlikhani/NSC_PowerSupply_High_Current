@@ -53,13 +53,11 @@ void ADC_CaculationFunc(void)
 
 	  	////////////////////////
 	  	Avg_Cnt1 = 0;
-	  };
+	  }
+
 	  Avg_Cnt1++;
-	  i2s(Vout,Read_Voltage);
-	  sent_data[6]=Read_Voltage[0];
-	  sent_data[7]=Read_Voltage[1];
-	  sent_data[8]=Read_Voltage[2];
-	  sent_data[9]=Read_Voltage[3];
+	  i2s(Vout,sent_data);
+
 	  //-------------------------------------------------------//
 
 	  //--------------------- Current ADC ---------------------//
@@ -70,9 +68,10 @@ void ADC_CaculationFunc(void)
 	  Averaged_ADC1_Buffer = ADC1_Buffer_Sum/50;
 	  // Moving average filter //
 	  Moving_Average_Buffer_Current = Moving_Average_Buffer_Current + Averaged_ADC1_Buffer;
+
 	  if (Avg_Cnt2==10)
 	  {
-	  	Iout_NotCalibrated = (uint32_t) (((Iout_NotCalibrated*9)+(Moving_Average_Buffer_Current/10))/10 );
+	  	Iout_NotCalibrated = (uint32_t) ((( Iout_NotCalibrated * 9 ) + ( Moving_Average_Buffer_Current / 10 )) / 10 );
 	  	Iout = (uint32_t)(Iout_NotCalibrated*Current_Calibration_Coefficient); //Current_HMI-Preview = 0.1185*ADC + 0.9473
 	  	Moving_Average_Buffer_Current = 0;
 	  	// Offset Calibration //
@@ -82,13 +81,11 @@ void ADC_CaculationFunc(void)
 	  		Iout = 0;
 	  	////////////////////////
 	  	Avg_Cnt2 = 0;
-	  };
+	  }
+
 	  Avg_Cnt2++;
-	  i2s(Iout,Read_Current);
-	  sent_data[2]=Read_Current[0];
-	  sent_data[3]=Read_Current[1];
-	  sent_data[4]=Read_Current[2];
-	  sent_data[5]=Read_Current[3];
+	  i2s(Iout,sent_data);
+
 	  //-------------------------------------------------------//
 	  sent_data[10]=flags_status.flag_DC_OK+'0';
 	  sent_data[11]=failure_status.Trans_Overheat+'0';
@@ -97,17 +94,17 @@ void ADC_CaculationFunc(void)
 	  sent_data[14]=failure_status.tacho2_Disable+'0';
 
 	  //--------------------- Power ADC ---------------------//
-	  Pout=Vout*Iout/1000;
+	  Pout = (Vout * Iout) / 1000;
 	  //------ Power Filter ------//
 	  Power_Buffer = 0;
 	  for (uint32_t i=0; i < 50; i++)
 	  	Power_Buffer = Power_Buffer + Pout;
-	  Averaged_Power = Power_Buffer/50;
+	  Averaged_Power = Power_Buffer / 50;
 	  // Moving average filter //
 	  Moving_Average_Power = Moving_Average_Power + Averaged_Power;
 	  if (Avg_Cnt3==10)
 	  {
-	  	Output_Power = (uint32_t) ( ((Output_Power*9)+(Moving_Average_Power/10))/10 );
+	  	Output_Power = (uint32_t) ( ((Output_Power * 9 )+(Moving_Average_Power / 10 )) / 10 );
 	  	Moving_Average_Power = 0;
 	  	Avg_Cnt3 = 0;
 	  };
